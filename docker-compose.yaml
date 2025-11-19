@@ -1,0 +1,24 @@
+version: '3.6'
+services:
+  service:
+    build:
+      context: .
+      target: service
+    ports:
+      - "8080:8080"
+    command: uvicorn openapi_server.main:app --host 0.0.0.0 --port 8080
+    environment:
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://host.docker.internal:6379/0
+      - NETWORK=finney
+    restart: unless-stopped
+  worker:
+    build:
+      context: .
+      target: service
+    command: python -m openapi_server.worker
+    environment:
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://host.docker.internal:6379/0
+      - NETWORK=finney
+    restart: unless-stopped
