@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/not-tao-stats
+  IMAGE_NAME: ${{ github.repository_owner }}/not-tao-stats
 
 jobs:
   build-and-push:
