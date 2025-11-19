@@ -12,7 +12,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/no-tao-stats
+  IMAGE_NAME: ${{ github.repository }}/not-tao-stats
 
 jobs:
   build-and-push:
