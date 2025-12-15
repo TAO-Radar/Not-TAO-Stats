@@ -70,10 +70,26 @@ def _convert_metagraph_info_to_items(metagraph_info: MetagraphInfo) -> List[Dtao
     # Calculate startup_mode (check if metagraph is in startup)
     startup_mode = metagraph_info.immunity_period > 0 if hasattr(metagraph_info, 'immunity_period') else False
     
-    # Name and symbol (derived from netuid)
-    identity = SubnetIdentity._from_dict(metagraph_info.identity)
-    name = identity.subnet_name
+    # Name and symbol (derived from netuid/identity, robust if identity is missing)
+    # Symbol: always use the value provided by metagraph_info
     symbol = metagraph_info.symbol
+
+    # Special case: netuid 0 is the Root subnet
+    if metagraph_info.netuid == 0:
+        name = "Root"
+    else:
+        name = None
+        try:
+            if metagraph_info.identity:
+                identity = SubnetIdentity._from_dict(metagraph_info.identity)
+                name = getattr(identity, "subnet_name", None)
+        except Exception:
+            # If anything goes wrong while decoding identity, fall back to Unknown
+            name = None
+
+        if not name:
+            # Fallback when subnet identity is not available
+            name = "Unknown"
     
     # Default values for fields not available in MetagraphInfo
     alpha_buy_volume_24_hr = "0"
