@@ -167,6 +167,7 @@ class PoolApiImpl(BasePoolApi):
 
     async def get_dtao_pool_latest(self, netuid: Optional[int], page: Optional[int], limit: Optional[int], order: Optional[DtaoPoolOrder]) -> DtaoPoolResponse:
         items: List[DtaoPoolItem] = []
+        paginated_items: List[DtaoPoolItem] = []
         per_page = limit or 10
         current_page = page or 1
 
@@ -207,6 +208,7 @@ class PoolApiImpl(BasePoolApi):
                 metagraph = pickle.loads(metagraph)
                 metagraph_info = MetagraphInfo.from_dict(metagraph)
                 items.extend(_convert_metagraph_info_to_items(metagraph_info))
+            paginated_items = items
         
         pagination = Pagination(
             current_page=current_page,
