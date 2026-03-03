@@ -166,25 +166,47 @@ class PoolApiImpl(BasePoolApi):
         self.context = get_context()
 
     async def get_dtao_pool_latest(self, netuid: Optional[int], page: Optional[int], limit: Optional[int], order: Optional[DtaoPoolOrder]) -> DtaoPoolResponse:
-        netuid = netuid or 0
-        metagraph = await self.context.redis.get(f"metagraph:{netuid}")
-        if metagraph:
-            metagraph = pickle.loads(metagraph)
-            metagraph_info = MetagraphInfo.from_dict(metagraph)
-            items = _convert_metagraph_info_to_items(metagraph_info)
-        else:
-            items = []
-        
-        # Calculate pagination
-        total_items = len(items)
+        items: List[DtaoPoolItem] = []
         per_page = limit or 10
         current_page = page or 1
-        total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
-        
-        # Apply pagination
-        start_idx = (current_page - 1) * per_page
-        end_idx = start_idx + per_page
-        paginated_items = items[start_idx:end_idx]
+
+        if netuid is not None:
+            metagraph = await self.context.redis.get(f"metagraph:{netuid}")
+            if metagraph:
+                metagraph = pickle.loads(metagraph)
+                metagraph_info = MetagraphInfo.from_dict(metagraph)
+                items = _convert_metagraph_info_to_items(metagraph_info)
+
+            total_items = len(items)
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+            start_idx = (current_page - 1) * per_page
+            end_idx = start_idx + per_page
+            paginated_items = items[start_idx:end_idx]
+        else:
+            netuids = []
+            async for key in self.context.redis.scan_iter("metagraph:*"):
+                try:
+                    decoded = key.decode() if isinstance(key, bytes) else str(key)
+                    _, netuid_str = decoded.split(":", 1)
+                    netuids.append(int(netuid_str))
+                except (ValueError, IndexError):
+                    continue
+
+            netuids = sorted(set(netuids))
+            total_items = len(netuids)
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+
+            start_idx = (current_page - 1) * per_page
+            end_idx = start_idx + per_page
+            page_netuids = netuids[start_idx:end_idx]
+
+            for n in page_netuids:
+                metagraph = await self.context.redis.get(f"metagraph:{n}")
+                if not metagraph:
+                    continue
+                metagraph = pickle.loads(metagraph)
+                metagraph_info = MetagraphInfo.from_dict(metagraph)
+                items.extend(_convert_metagraph_info_to_items(metagraph_info))
         
         pagination = Pagination(
             current_page=current_page,

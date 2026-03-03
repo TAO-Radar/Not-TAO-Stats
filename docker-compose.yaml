@@ -5,13 +5,13 @@ services:
       context: .
       target: service
     image: ghcr.io/tao-radar/not-tao-stats:main
-    ports:
-      - "8080:8080"
-    command: uvicorn openapi_server.main:app --host 0.0.0.0 --port 8080
+    command: uvicorn openapi_server.main:app --host 0.0.0.0 --port 8000
     environment:
       - PYTHONUNBUFFERED=1
-      - REDIS_URL=redis://host.docker.internal:6379/0
+      - REDIS_URL=redis://posterbot-redis:6379/0
       - NETWORK=finney
+    networks:
+      - posterbot_default
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -23,8 +23,10 @@ services:
     command: python -m openapi_server.worker
     environment:
       - PYTHONUNBUFFERED=1
-      - REDIS_URL=redis://host.docker.internal:6379/0
+      - REDIS_URL=redis://posterbot-redis:6379/0
       - NETWORK=finney
+    networks:
+      - posterbot_default
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -37,3 +39,7 @@ services:
       - WATCHTOWER_POLL_INTERVAL=300
       - WATCHTOWER_INCLUDE_STOPPED=true
     restart: unless-stopped
+
+networks:
+  posterbot_default:
+    external: true
